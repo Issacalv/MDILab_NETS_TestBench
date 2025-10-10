@@ -6,8 +6,8 @@ import pickle
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+from experiment_parameters import CAMERA_ID
 
-CAMERA_ID = 0
 SQUARE_SIZE = 3  # in centimeters
 CHESSBOARD_SIZE = (6, 4)
 MAX_IMAGES = 30
@@ -18,8 +18,18 @@ OUTPUT_DIRECTORY = 'calibration_images'
 
 def capture_calibration_images():
     """
-    Automatically capture chessboard images from a camera for calibration.
+    Captures a series of images of a chessboard pattern for camera calibration.
+
+    Opens a video stream, detects chessboard corners in real time, and automatically saves
+    frames containing valid patterns at timed intervals until a maximum count is reached.
+
+    Creates and saves images in the `calibration_images/` directory.
+
+    Notes:
+        - Press 'q' or ESC to manually exit early.
+        - Used as the first step in camera calibration.
     """
+
     os.makedirs(OUTPUT_DIRECTORY, exist_ok=True)
     cap = cv2.VideoCapture(CAMERA_ID)
 
@@ -75,8 +85,20 @@ def capture_calibration_images():
 
 def calibrate_camera():
     """
-    Calibrates the camera using the captured chessboard images.
+    Performs intrinsic camera calibration using previously captured chessboard images.
+
+    Detects corner points in calibration images, computes the camera matrix and distortion
+    coefficients, and saves them for later use. Also outputs annotated images showing
+    the detected corner points.
+
+    Returns:
+        tuple: (rms_error, camera_matrix, distortion_coefficients, rotation_vectors, translation_vectors)
+
+    Notes:
+        - Requires images stored in `calibration_images/*.jpg`.
+        - Saves calibration data to `calibration_images/calibration_data.pkl`.
     """
+
     objp = np.zeros((CHESSBOARD_SIZE[0] * CHESSBOARD_SIZE[1], 3), np.float32)
     objp[:, :2] = np.mgrid[0:CHESSBOARD_SIZE[0], 0:CHESSBOARD_SIZE[1]].T.reshape(-1, 2)
     objp *= SQUARE_SIZE
@@ -134,8 +156,18 @@ def calibrate_camera():
 
 def undistort_images(mtx, dist):
     """
-    Undistorts images using calibration results.
+    Applies lens distortion correction to all calibration images using the provided
+    camera matrix and distortion coefficients.
+
+    Args:
+        mtx (np.ndarray): The camera intrinsic matrix.
+        dist (np.ndarray): The distortion coefficients.
+
+    Notes:
+        - Saves undistorted images to `calibration_images/undistorted/`.
+        - Only runs if SAVE_UNDISTORTED = True.
     """
+
     if not SAVE_UNDISTORTED:
         return
 
@@ -164,8 +196,23 @@ def undistort_images(mtx, dist):
 
 def calculate_reprojection_error(objpoints, imgpoints, mtx, dist, rvecs, tvecs):
     """
-    Calculates mean reprojection error.
+    Computes the mean reprojection error of the camera calibration.
+
+    Compares detected corner positions with their projected positions using the
+    calibrated camera parameters to evaluate calibration accuracy.
+
+    Args:
+        objpoints (list[np.ndarray]): 3D world coordinates of chessboard corners.
+        imgpoints (list[np.ndarray]): 2D image coordinates detected in the calibration images.
+        mtx (np.ndarray): The camera intrinsic matrix.
+        dist (np.ndarray): The distortion coefficients.
+        rvecs (list[np.ndarray]): Rotation vectors from calibration.
+        tvecs (list[np.ndarray]): Translation vectors from calibration.
+
+    Returns:
+        float: Mean reprojection error across all calibration images.
     """
+
     total_error = 0
     for i in range(len(objpoints)):
         imgpoints2, _ = cv2.projectPoints(objpoints[i], rvecs[i], tvecs[i], mtx, dist)
@@ -179,8 +226,16 @@ def calculate_reprojection_error(objpoints, imgpoints, mtx, dist, rvecs, tvecs):
 
 def plot_before_after():
     """
-    Display and save two random 'before and after' pairs of original vs. undistorted images.
+    Displays and saves side-by-side comparisons of original and undistorted images.
+
+    Randomly selects up to two image pairs and generates a visual comparison figure
+    to validate the quality of lens distortion correction.
+
+    Notes:
+        - Requires both original and undistorted images to exist.
+        - Saves the figure as `calibration_images/before_after_comparison.png`.
     """
+
     original_images = sorted(glob.glob(os.path.join(OUTPUT_DIRECTORY, 'calibration_*.jpg')))
     undistorted_images = sorted(glob.glob(os.path.join(OUTPUT_DIRECTORY, 'undistorted', 'undistorted_*.jpg')))
 
@@ -220,7 +275,20 @@ def plot_before_after():
 
     plt.close(fig)
 
-def main():
+def camera_calibration_main():
+    """
+    Main workflow for camera calibration.
+
+    Handles the full calibration pipeline:
+    1. Captures calibration images (if needed)
+    2. Loads or computes calibration parameters
+    3. Applies undistortion to images
+    4. Optionally generates before/after visual comparison
+
+    This function serves as the entry point for calibration and is typically
+    called before running experiments to ensure accurate video data.
+    """
+
     print("Starting camera calibration...")
 
     existing_images = glob.glob(CALIBRATION_IMAGES_PATH)
@@ -254,6 +322,3 @@ def main():
         plot_before_after()
     print("Camera calibration completed successfully!")
 
-
-if __name__ == "__main__":
-    main()

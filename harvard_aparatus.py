@@ -70,22 +70,55 @@ from experiment_parameters import TARGET_VOLUME_INFUSE, TARGET_VOLUME_INFUSE_UNI
 import serial
 import time
 
-HARVARD_STOP = "stop"
-HARVARD_QUICK_START_IW = "load qs iw"
-HARVARD_CLEAR_TARGET_TIME = "cttime"
-HARVARD_CLEAR_TARGET_VOLUME = "ctvolume"
-HARVARD_SET_TARGET_VOLUME_INFUSE = f"tvolume {TARGET_VOLUME_INFUSE} {TARGET_VOLUME_INFUSE_UNIT}"
-HARVARD_SET_TARGET_VOLUME_WITHDRAW = f"tvolume {TARGET_VOLUME_WITHDRAW} {TARGET_VOLUME_WITHDRAW_UNIT}"
-HARVARD_INFUSE_RUN = "irun"
-HARVARD_WITHDRAW_RUN = "wrun"
-HARVARD_SYRINGE_SET_DIAMETER = f"diameter {SYRINGE_DIAMETER_MM}"
-HARVARD_SYRINGE_SET_VOLUME = f"svolume {SYRINGE_VOLUME} {SYRINGE_VOLUME_UNIT}"
-HARVARD_SET_INFUSION_RATE = f"irate {INFUSION_RATE} {INFUSION_RATE_UNIT}"
-HARVARD_SET_WITHDRAW_RATE = f"wrate {WITHDRAW_RATE} {WITHDRAW_RATE_UNIT}"
-HARVARD_TARGET_REACHED = "T*"
+# --- Harvard Apparatus Pump Command Definitions ---
+# --- Do NOT modify ----
 
-INFUSION_FLAG_LIST = ["I", "i"]
-WITHDRAW_FLAG_LIST = ["W", "w"]
+HARVARD_STOP = "stop"  
+# Immediately stops the pump operation (equivalent to pressing the STOP button).
+
+HARVARD_QUICK_START_IW = "load qs iw"  
+# Loads the "Quick Start Infuse/Withdraw" method on the pump.
+
+HARVARD_CLEAR_TARGET_TIME = "cttime"  
+# Clears any previously set target run time on the pump.
+
+HARVARD_CLEAR_TARGET_VOLUME = "ctvolume"  
+# Clears any previously set target volume (resets volume tracking).
+
+HARVARD_SET_TARGET_VOLUME_INFUSE = f"tvolume {TARGET_VOLUME_INFUSE} {TARGET_VOLUME_INFUSE_UNIT}"  
+# Sets the infusion target volume (how much to infuse before stopping).
+
+HARVARD_SET_TARGET_VOLUME_WITHDRAW = f"tvolume {TARGET_VOLUME_WITHDRAW} {TARGET_VOLUME_WITHDRAW_UNIT}"  
+# Sets the withdrawal target volume (how much to withdraw before stopping).
+
+HARVARD_INFUSE_RUN = "irun"  
+# Starts infusion (forward motion of the syringe plunger).
+
+HARVARD_WITHDRAW_RUN = "wrun"  
+# Starts withdrawal (reverse motion of the syringe plunger).
+
+HARVARD_SYRINGE_SET_DIAMETER = f"diameter {SYRINGE_DIAMETER_MM}"  
+# Configures the syringe diameter in millimeters — required for volume calculations.
+
+HARVARD_SYRINGE_SET_VOLUME = f"svolume {SYRINGE_VOLUME} {SYRINGE_VOLUME_UNIT}"  
+# Sets the syringe’s total volume and unit (e.g., 60 mL).
+
+HARVARD_SET_INFUSION_RATE = f"irate {INFUSION_RATE} {INFUSION_RATE_UNIT}"  
+# Sets the infusion (forward) flow rate and its unit (e.g., 126 mL/min).
+
+HARVARD_SET_WITHDRAW_RATE = f"wrate {WITHDRAW_RATE} {WITHDRAW_RATE_UNIT}"  
+# Sets the withdrawal (reverse) flow rate and its unit (e.g., 126 mL/min).
+
+HARVARD_TARGET_REACHED = "T*"  
+# Response flag from the pump indicating that the set target volume or time has been reached.
+
+# --- Pump Status Flags ---
+INFUSION_FLAG_LIST = ["I", "i"]  
+# Identifies infusion states in the pump’s status string.
+
+WITHDRAW_FLAG_LIST = ["W", "w"]  
+# Identifies withdrawal states in the pump’s status string.
+
 
 def harvard_control(COM_PORT = None, BAUD_RATE = None):
     if COM_PORT is None:

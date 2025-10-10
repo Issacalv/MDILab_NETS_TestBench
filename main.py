@@ -1,4 +1,4 @@
-import calibrate
+from calibrate import camera_calibration_main
 from serial_connection import initialize_devices
 from harvard_aparatus import harvard_control
 from record_video import start_video_recording
@@ -12,6 +12,19 @@ from harvard_aparatus import *
 
 
 def create_data_folders(experiment_name, materials, num_trials):
+    """
+    Creates a structured directory hierarchy for storing experiment data.
+
+    Each run is organized by date and timestamp, containing subfolders for each trial.
+
+    Args:
+        experiment_name (str): Name of the experiment (e.g., "AirTest").
+        materials (str): Type of material tested (e.g., "EcoFlex20").
+        num_trials (int): Number of experimental trials to create folders for.
+
+    Returns:
+        str: Path to the main experiment folder where all trial folders are created.
+    """
 
     now = datetime.now()
     date_folder = now.strftime("%m-%d")
@@ -35,18 +48,40 @@ def create_data_folders(experiment_name, materials, num_trials):
     return experiment_path
 
 def initial_setup():
-    calibrate.main()
+    """
+    Performs initial setup of the experiment system, including camera calibration 
+    and serial connection to the Harvard syringe pump.
+
+    Runs camera calibration using the calibration module, 
+    scans available COM ports, and initializes serial communication.
+
+    Returns:
+        serial.Serial: An active serial connection object to the Harvard pump.
+    """
+    camera_calibration_main()
     Harvard_Port = initialize_devices()
     Harvard_Serial = harvard_control(Harvard_Port, BAUD_RATE=115200)
     return Harvard_Serial
 
 def save_trial_parameters(experiment_path):
+    """
+    Saves experiment configuration parameters (e.g., syringe size, flow rates, materials)
+    to a text file within the experiment folder.
+
+    Args:
+        experiment_path (str): Path to the current experiment's directory.
+
+    Notes:
+        This helps document all relevant conditions for each experimental run.
+        If an error occurs during file writing, it prints an error message.
+    """
+
     now = datetime.now()
     parameters_path_txt = os.path.join(experiment_path, f"Data_Parameters.txt")
     try:
         with open(parameters_path_txt, "w") as f:
     
-            f.write(f"Trial Date: {now.strftime("%m_%d %H-%M-%S")}\n")
+            f.write(f"Trial Date: {now.strftime('%m_%d %H-%M-%S')}\n")
             f.write(f"Number of Trials: {N_TRIALS}\n")
             f.write(f"Experiment Type: {EXPERIMENT_TYPE}\n")
             f.write(f"Material Type: {MATERIAL_TYPE}\n")
@@ -64,6 +99,20 @@ def save_trial_parameters(experiment_path):
     
 
 def save_trial_data(trial_folder, trial_number, trial_data):
+    """
+    Saves collected pump data (time, volume, and state) from a single trial into a CSV file.
+
+    Args:
+        trial_folder (str): Folder path where the trial data should be saved.
+        trial_number (int): The current trial number (for filename labeling).
+        trial_data (list[tuple]): List of tuples containing pump data 
+            in the form (time_seconds, volume_mL, state).
+
+    Notes:
+        Each CSV file is labeled as Data_<trial_number>.csv.
+        If an error occurs during saving, an error message is printed.
+    """
+
 
     data_path_csv = os.path.join(trial_folder, f"Data_{trial_number}.csv")
     
@@ -81,6 +130,22 @@ def save_trial_data(trial_folder, trial_number, trial_data):
 
 
 def run_experiment(N_TRIALS):
+    """
+    Coordinates the full experimental workflow for the given number of trials.
+
+    Performs pump initialization, video recording, infusion and withdrawal control, 
+    and data logging for each trial. Automatically creates folders and saves results.
+
+    Args:
+        N_TRIALS (int): Number of experiment repetitions to execute.
+
+    Workflow:
+        1. Sets up hardware and data folders.
+        2. Runs the infusion/withdraw sequence for each trial.
+        3. Logs pump responses and statuses.
+        4. Stops video and saves data after each trial.
+    """
+
     Harvard_Serial = initial_setup()
     experiment_path = create_data_folders(EXPERIMENT_TYPE, MATERIAL_TYPE, N_TRIALS)
     save_trial_parameters(experiment_path)
@@ -141,8 +206,18 @@ def run_experiment(N_TRIALS):
     Harvard_Serial.close()
     print("\n=== All trials complete ===")
 
+def main():
+    """
+    Main entry point of the program.
+
+    Validates syringe parameters and flow rate safety before 
+    starting the experiment run sequence.
+    """
+
+    check_syringe_limits()
+    calculate_flow_rates()
+    run_experiment(N_TRIALS)
 
 
-check_syringe_limits()
-calculate_flow_rates()
-run_experiment(N_TRIALS)
+if __name__ == "__main__":
+    main()

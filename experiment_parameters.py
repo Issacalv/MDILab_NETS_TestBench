@@ -1,31 +1,67 @@
 def normalize_strings(string):
+    """
+    Normalizes a given string by stripping whitespace and converting it to lowercase.
+
+    This ensures consistent formatting of user-defined units and parameter names
+    (e.g., "ML", " ml ", "Ml" → "ml").
+
+    Args:
+        string (str): Input string to normalize.
+
+    Returns:
+        str: The normalized (lowercased, trimmed) string.
+    """
+
     return string.strip().lower()
 
-SYRINGE_DIAMETER_MM = 29.2
-SYRINGE_VOLUME = 60
-SYRINGE_VOLUME_UNIT = normalize_strings("ml")
+# --- Syringe Configuration ---
+SYRINGE_DIAMETER_MM = 29.2          # Inner diameter of the syringe in millimeters
+SYRINGE_VOLUME = 60                 # Total syringe capacity (numerical value)
+SYRINGE_VOLUME_UNIT = normalize_strings("ml")   # Unit of syringe volume (L, mL, or µL)
 
-TARGET_VOLUME_INFUSE = 60
-TARGET_VOLUME_INFUSE_UNIT = normalize_strings("ml")
-INFUSION_RATE = 126
-INFUSION_RATE_UNIT = normalize_strings("ml/min")
+# --- Infusion Settings ---
+TARGET_VOLUME_INFUSE = 60           # Volume to infuse per trial
+TARGET_VOLUME_INFUSE_UNIT = normalize_strings("ml")   # Unit for infusion target volume
+INFUSION_RATE = 126                 # Flow rate during infusion
+INFUSION_RATE_UNIT = normalize_strings("ml/min")      # Infusion rate units (L/min, mL/min, etc.)
 
-TARGET_VOLUME_WITHDRAW = 60
-TARGET_VOLUME_WITHDRAW_UNIT = normalize_strings("ml")
-WITHDRAW_RATE = 126
-WITHDRAW_RATE_UNIT = normalize_strings("ml/min")
+# --- Withdrawal Settings ---
+TARGET_VOLUME_WITHDRAW = 60         # Volume to withdraw per trial
+TARGET_VOLUME_WITHDRAW_UNIT = normalize_strings("ml") # Unit for withdrawal target volume
+WITHDRAW_RATE = 126                 # Flow rate during withdrawal
+WITHDRAW_RATE_UNIT = normalize_strings("ml/min")      # Withdrawal rate units
 
+# --- Experiment Metadata ---
+DATA_FOLDER_NAME = "Data"           # Root directory for saving all experiment data
+EXPERIMENT_TYPE = "AirTest"         # Label for the experiment (used in folder naming)
+MATERIAL_TYPE = "EcoFlex20"         # Material being tested
+N_TRIALS = 1                        # Number of experiment trials to perform
 
-DATA_FOLDER_NAME = "Data"
-EXPERIMENT_TYPE = "AirTest"
-MATERIAL_TYPE = "EcoFlex20"
-N_TRIALS = 1
+# --- Camera and Timing Settings ---
+CAMERA_ID = 0                       # ID/index of the connected camera (0 = default)
+DELAY_CAMERA_BOOT = 3               # Delay (in seconds) before starting the pump after video starts
+INFUSION_PAUSE = 1                  # Pause (in seconds) between infusion and withdrawal phases
 
-
-DELAY_CAMERA_BOOT = 3      # Wait before starting pump after video starts
-INFUSION_PAUSE = 1         # Pause before switching from infuse -> withdraw
 
 def check_syringe_limits():
+    """
+    Validates that syringe and target volume settings are physically consistent.
+
+    Checks that all specified units are valid, that the target infusion and withdrawal
+    volumes do not exceed the total syringe capacity, and that the units can be
+    converted properly.
+
+    Raises:
+        ValueError: If any of the following conditions occur:
+            - A volume unit is invalid or unsupported.
+            - The infusion or withdrawal volume exceeds syringe capacity.
+        Prints confirmation if all checks pass.
+
+    Notes:
+        This function should be called before starting an experiment to prevent
+        hardware misuse or incorrect parameter settings.
+    """
+
 
     unit_conversion = {"l":1000, "ml": 1, "ul": 0.001}
     allowed_units = ", ".join(unit_conversion.keys())
@@ -50,6 +86,24 @@ def check_syringe_limits():
 
 
 def calculate_flow_rates():
+    """
+    Calculates and validates flow rate limits based on syringe geometry.
+
+    Uses reference syringe specifications to scale minimum and maximum
+    flow rate limits, ensuring that the configured infusion and withdrawal
+    rates are within safe and supported bounds.
+
+    Raises:
+        ValueError: If any of the following conditions occur:
+            - An invalid flow rate unit is specified.
+            - The syringe diameter is zero or negative.
+            - The infusion or withdrawal rate exceeds or falls below allowed limits.
+
+    Notes:
+        - Reference values are based on the Harvard PHD Ultra pump specifications.
+        - Adds a small buffer (`FLOW_BUFFER_ML_PER_MIN`) to prevent edge case errors.
+    """
+
     SYRINGE_ID_REF = 14.427
     SYRINGE_MIN_RATE_REF = 30.0640
     SYRINGE_MIN_RATE_REF_UNIT = "nl/min"  # change to "ul/min" if needed
