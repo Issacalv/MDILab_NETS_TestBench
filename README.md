@@ -34,8 +34,8 @@ Automated control and data logging system for the **Harvard PHD Ultra syringe pu
 
 1. **Clone or Download the Repository**
    ```bash
-   git clone https://github.com/<your-username>/<repo-name>.git
-   cd <repo-name>
+   git clone https://github.com/Issacalv/MDI_NETS_TestBench.git
+   cd MDI_NETS_TestBench/
    ```
 
 2. **Create a Python Virtual Environment**
