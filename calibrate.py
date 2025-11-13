@@ -12,7 +12,7 @@ SQUARE_SIZE = 3  # in centimeters
 CHESSBOARD_SIZE = (6, 4)
 MAX_IMAGES = 30
 CAPTURE_INTERVAL = 2
-SAVE_UNDISTORTED = False
+SAVE_UNDISTORTED = Falsegit
 CALIBRATION_IMAGES_PATH = 'calibration_images/*.jpg'
 OUTPUT_DIRECTORY = 'calibration_images'
 
@@ -320,5 +320,81 @@ def camera_calibration_main():
     undistort_images(mtx, dist)
     if SAVE_UNDISTORTED:
         plot_before_after()
+        print("Opening distortion preview...")
+        preview_distortion_live(mtx, dist, CROP=True)
+
+
     print("Camera calibration completed successfully!")
 
+
+def preview_distortion_live(mtx, dist, CROP=True):
+    """
+    Live camera preview showing distorted vs undistorted images side-by-side.
+
+    Args:
+        mtx  (np.ndarray): camera matrix
+        dist (np.ndarray): distortion coefficients
+        CROP (bool): if True -> crop to ROI (zoomed view, no black borders)
+                     if False -> keep full FOV (black borders possible)
+    """
+    cap = cv2.VideoCapture(CAMERA_ID)
+    if not cap.isOpened():
+        print(f"Error: Could not open camera {CAMERA_ID}")
+        return
+
+    print("Live preview running... Press 'q' or ESC to quit")
+
+    # Read one frame to get dimensions
+    ret, frame = cap.read()
+    if not ret:
+        print("Error: Failed to read from camera")
+        return
+
+    h, w = frame.shape[:2]
+
+    # Compute undistortion maps
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(
+        mtx, dist, (w, h), 1
+    )
+
+    map1, map2 = cv2.initUndistortRectifyMap(
+        mtx, dist, None, newcameramtx, (w, h), cv2.CV_16SC2
+    )
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Undistort frame
+        undistorted = cv2.remap(frame, map1, map2, cv2.INTER_LINEAR)
+
+        if CROP:
+            x, y, w_roi, h_roi = roi
+            undistorted = undistorted[y:y + h_roi, x:x + w_roi]
+
+            # Resize cropped to match original frame size for side-by-side preview
+            undistorted = cv2.resize(undistorted, (frame.shape[1], frame.shape[0]))
+        else:
+            pass
+
+        # Create side-by-side comparison
+        combined = np.hstack((
+            frame,
+            cv2.resize(undistorted, (frame.shape[1], frame.shape[0]))
+        ))
+
+        cv2.imshow("Distorted (left) vs Undistorted (right)", combined)
+
+        key = cv2.waitKey(1) & 0xFF
+        if key in (ord('q'), 27):  # q or ESC
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+
+
+
+
+camera_calibration_main()
