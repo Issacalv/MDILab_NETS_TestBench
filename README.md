@@ -32,13 +32,15 @@ Automated control and data logging system for the **Harvard PHD Ultra syringe pu
 
 ## 🧱 Installation & Setup (in VS Code)
 
-1. **Clone or Download the Repository**
+1. Open a terminal (**Ctrl + `**) inside VS Code  
+
+2. **Clone or Download the Repository**
    ```bash
    git clone https://github.com/Issacalv/MDI_NETS_TestBench.git
    cd MDI_NETS_TestBench/
    ```
 
-2. **Create a Python Virtual Environment**
+3. **Create a Python Virtual Environment**
    ```bash
    python -m venv venv
    ```
@@ -48,12 +50,12 @@ Automated control and data logging system for the **Harvard PHD Ultra syringe pu
      venv\Scripts\activate
      ```
 
-3. **Install Dependencies**
+4. **Install Dependencies**
    ```bash
    pip install -r requirements.txt
    ```
 
-4. **Connect Your Hardware**
+5. **Connect Your Hardware**
    - Plug in the syringe pump and note its COM port (e.g., `COM3`).
    - Connect your USB webcam.  
    - Confirm both devices appear in Device Manager.
@@ -114,14 +116,6 @@ All parameters are validated automatically before the test starts.
 📦 MDI_NETS_TestBench
 ├── main.py                   # Central experiment control script
 ├── calibrate.py              # Camera calibration and undistortion tools
-│   ├── calibration_images/               # Auto-generated folder
-│   │   ├── calibration_00.jpg           # Captured chessboard images
-│   │   ├── corners_calibration_00.jpg   # Corner-detected images
-│   │   ├── calibration_data.pkl         # Saved calibration data
-│   │   ├── camera_matrix.txt            # Intrinsic parameters
-│   │   ├── distortion_coefficients.txt  # Lens distortion coefficients
-│   │   ├── undistorted/                 # (optional) corrected images
-│   │   └── before_after_comparison.png  # Before vs. after plot
 ├── record_video.py           # Threaded video recording functions
 ├── harvard_apparatus.py      # Pump command logic and serial protocol
 ├── serial_connection.py      # COM port scanning and initialization
@@ -129,18 +123,26 @@ All parameters are validated automatically before the test starts.
 ├── variables.py              # Hardware IDs and COM port constants
 ├── requirements.txt          # Python dependencies
 └── Data/                     # Auto-generated folder for results and videos
-    └── 10-10/                # Example date (MM-DD)
-        └── AirTest_EcoFlex20_14-30-52/    # Timestamped experiment folder
-            ├── Data_Parameters.txt
-            ├── Trial_1/
-            │   ├── Data_1.csv
-            │   └── Video_Trial_1.mp4
-            ├── Trial_2/
-            │   ├── Data_2.csv
-            │   └── Video_Trial_2.mp4
-            └── Trial_3/
-                ├── Data_3.csv
-                └── Video_Trial_3.mp4
+│    └── 10-10/               # Example date (MM-DD)
+│        └── AirTest_EcoFlex20_14-30-52/    # Timestamped experiment folder
+│            ├── Data_Parameters.txt        # Summary txt parameters file
+│            ├── Trial_1/
+│            │   ├── Data_1.csv
+│            │   └── Video_Trial_1.mp4
+│            ├── Trial_2/
+│            │   ├── Data_2.csv
+│            │   └── Video_Trial_2.mp4
+│            └── Trial_3/
+│                ├── Data_3.csv
+│                └── Video_Trial_3.mp4
+├── calibration_images/               # Auto-generated folder
+│   ├── calibration_00.jpg           # Captured chessboard images
+│   ├── corners_calibration_00.jpg   # Corner-detected images
+│   ├── calibration_data.pkl         # Saved calibration data
+│   ├── camera_matrix.txt            # Intrinsic parameters
+│   ├── distortion_coefficients.txt  # Lens distortion coefficients
+│   ├── undistorted/                 # (optional) corrected images
+│   └── before_after_comparison.png  # Before vs. after plot
 ```
 
 ---
