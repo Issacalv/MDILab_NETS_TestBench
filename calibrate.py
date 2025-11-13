@@ -12,7 +12,7 @@ SQUARE_SIZE = 3  # in centimeters
 CHESSBOARD_SIZE = (6, 4)
 MAX_IMAGES = 30
 CAPTURE_INTERVAL = 2
-SAVE_UNDISTORTED = Falsegit
+SAVE_UNDISTORTED = False
 CALIBRATION_IMAGES_PATH = 'calibration_images/*.jpg'
 OUTPUT_DIRECTORY = 'calibration_images'
 
@@ -392,9 +392,3 @@ def preview_distortion_live(mtx, dist, CROP=True):
 
     cap.release()
     cv2.destroyAllWindows()
-
-
-
-
-
-camera_calibration_main()
