@@ -9,6 +9,9 @@ from datetime import datetime
 import csv
 from experiment_parameters import *
 from harvard_aparatus import *
+from pressure_sensor import latest_pressure, pressure_thread
+
+
 
 
 def create_data_folders(experiment_name, materials, num_trials):
@@ -120,7 +123,14 @@ def save_trial_data(trial_folder, trial_number, trial_data):
     try:
         with open(data_path_csv, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["Pump Time (s)", "Volume (mL)", "State"])
+            writer.writerow([
+                "Timestamp (s)",
+                "Pump Volume (mL)",
+                "Pump State",
+                "Pressure (PSI)",
+                "Pressure (mmHg)"
+            ])
+
             writer.writerows(trial_data)
         print(f"Saved data log: {data_path_csv}")
 
@@ -135,22 +145,23 @@ def run_experiment(N_TRIALS):
 
     Performs pump initialization, video recording, infusion and withdrawal control, 
     and data logging for each trial. Automatically creates folders and saves results.
-
-    Args:
-        N_TRIALS (int): Number of experiment repetitions to execute.
-
-    Workflow:
-        1. Sets up hardware and data folders.
-        2. Runs the infusion/withdraw sequence for each trial.
-        3. Logs pump responses and statuses.
-        4. Stops video and saves data after each trial.
     """
 
     Harvard_Serial = initial_setup()
+
+    # Start pressure monitoring thread
+    pressure_stop_event = threading.Event()
+    threading.Thread(
+        target=pressure_thread,
+        args=(pressure_stop_event,),
+        daemon=True
+    ).start()
+
+    print("Pressure sensor thread started.")
+
     experiment_path = create_data_folders(EXPERIMENT_TYPE, MATERIAL_TYPE, N_TRIALS)
     save_trial_parameters(experiment_path)
     set_machine_params(Harvard_Serial)
-    
 
     for trial in range(N_TRIALS):
         print(f"\n=== Starting Trial {trial + 1}/{N_TRIALS} ===")
@@ -159,52 +170,100 @@ def run_experiment(N_TRIALS):
         send_cmd(Harvard_Serial, HARVARD_QUICK_START_IW)
         set_target_infused(Harvard_Serial)
 
-        trial_data = [] 
-
+        trial_data = []
         trial_folder = os.path.join(experiment_path, f"Trial_{trial + 1}")
-        stop_video_event, video_thread = start_video_recording(trial + 1, trial_folder)
-        time.sleep(DELAY_CAMERA_BOOT)
+
+        # Start video recording thread
+        stop_video_event, camera_ready_event, video_thread = start_video_recording(
+            trial + 1,
+            trial_folder
+        )
+        camera_ready_event.wait()  # Ensure camera is fully booted
 
         send_cmd(Harvard_Serial, HARVARD_INFUSE_RUN)
 
-
         infusion_complete = False
         withdrawing = False
-        last_status_time = 0
+        last_status_time = 0  # timestamp when pump was last polled
 
+        # -------------------------------
+        #        INFUSION LOOP
+        # -------------------------------
         while True:
-            response = Harvard_Serial.readline().decode('ascii', errors='ignore').strip()
+            response = Harvard_Serial.readline().decode("ascii", errors="ignore").strip()
             if response:
                 print("Pump response:", response)
                 if HARVARD_TARGET_REACHED in response:
                     infusion_complete = True
 
-            last_status_time = poll_pump_status(Harvard_Serial, trial_data, last_status_time)
+            # Pump status polling
+            t_s, vol_mL, pump_state, last_status_time = poll_pump_status(
+                Harvard_Serial, last_status_time
+            )
+
+            if t_s is not None:
+                # Read current pressure
+                pressure_psi = latest_pressure["psi"]
+                pressure_mmhg = latest_pressure["mmhg"]
+
+                # Unified row appended
+                trial_data.append((
+                    t_s,
+                    vol_mL,
+                    pump_state,
+                    pressure_psi,
+                    pressure_mmhg
+                ))
 
             if infusion_complete:
                 withdrawing = set_target_withdraw(Harvard_Serial)
                 break
+
             time.sleep(0.1)
 
+        # -------------------------------
+        #       WITHDRAWAL LOOP
+        # -------------------------------
         while withdrawing:
-            response = Harvard_Serial.readline().decode('ascii', errors='ignore').strip()
+            response = Harvard_Serial.readline().decode("ascii", errors="ignore").strip()
             if response:
                 print("Pump response:", response)
                 if HARVARD_TARGET_REACHED in response:
                     withdrawing = False
                     break
 
-            last_status_time = poll_pump_status(Harvard_Serial, trial_data, last_status_time)
+            # Poll pump
+            t_s, vol_mL, pump_state, last_status_time = poll_pump_status(
+                Harvard_Serial, last_status_time
+            )
+
+            if t_s is not None:
+                pressure_psi = latest_pressure["psi"]
+                pressure_mmhg = latest_pressure["mmhg"]
+
+                trial_data.append((
+                    t_s,
+                    vol_mL,
+                    pump_state,
+                    pressure_psi,
+                    pressure_mmhg
+                ))
 
             time.sleep(0.1)
 
+        # Stop video thread for this trial
         stop_video_event.set()
         video_thread.join()
 
+        # Save unified pump+pressure data
         save_trial_data(trial_folder, trial + 1, trial_data)
+
+    # Stop pressure thread
+    pressure_stop_event.set()
 
     Harvard_Serial.close()
     print("\n=== All trials complete ===")
+
 
 def main():
     """

@@ -3,8 +3,20 @@ import threading
 import os
 from experiment_parameters import CAMERA_ID
 
+def wait_until_camera_ready(cap, timeout=5):
+    import time
+    start = time.time()
+    while time.time() - start < timeout:
+        ret, frame = cap.read()
+        if ret and frame is not None:
+            print("Camera is ready.")
+            return True
+        time.sleep(0.05)
+    print("Camera FAILED to initialize.")
+    return False
 
-def record_video(CAMERA=CAMERA_ID, VIDEO_TYPE="mp4v", TRIAL_NUM=None, stop_event=None, output_path=None):
+
+def record_video(CAMERA=CAMERA_ID, camera_ready_event=None, VIDEO_TYPE="mp4v", TRIAL_NUM=None, stop_event=None, output_path=None):
 
     """
     Continuously records video frames from a connected camera and saves them to a file.
@@ -33,7 +45,20 @@ def record_video(CAMERA=CAMERA_ID, VIDEO_TYPE="mp4v", TRIAL_NUM=None, stop_event
 
     if not cap.isOpened():
         print("Error: Could not open video stream")
+        if camera_ready_event:
+            camera_ready_event.set()   # unblock main thread even if camera failed
         return
+
+    # NEW: Wait for camera boot
+    if wait_until_camera_ready(cap):
+        if camera_ready_event:
+            camera_ready_event.set()   # signal main thread that camera is ready
+    else:
+        print("Camera never became ready.")
+        if camera_ready_event:
+            camera_ready_event.set()   # still unblock main thread
+        return
+
 
     frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -90,6 +115,8 @@ def start_video_recording(trial_number, trial_folder):
     """
 
     stop_event = threading.Event()
+    camera_ready_event = threading.Event()
+
     video_path = os.path.join(trial_folder, f"Video_Trial_{trial_number}.mp4")
 
     video_thread = threading.Thread(
@@ -97,10 +124,15 @@ def start_video_recording(trial_number, trial_folder):
         kwargs={
             "TRIAL_NUM": trial_number,
             "stop_event": stop_event,
+            "camera_ready_event": camera_ready_event,
             "output_path": video_path,
         }
     )
 
     video_thread.start()
     print(f"Video thread started for Trial {trial_number}")
-    return stop_event, video_thread
+    return stop_event, camera_ready_event, video_thread
+
+
+
+

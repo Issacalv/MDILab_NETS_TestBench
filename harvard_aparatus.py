@@ -186,21 +186,44 @@ def set_target_withdraw(Harvard_Serial):
     withdrawing = True 
     return withdrawing
 
-def poll_pump_status(Harvard_Serial, trial_data, last_status_time, interval=1.0):
-    if time.time() - last_status_time > interval:
-        send_cmd(Harvard_Serial, "status")
-        time.sleep(0.1)
+def poll_pump_status(Harvard_Serial, last_status_time, interval=1.0):
+    """
+    Polls the Harvard pump for status at a controlled interval.
 
-        status_resp = Harvard_Serial.readline().decode('ascii', errors='ignore').strip()
-        if status_resp:
-            print("Status:", status_resp)
-            t_s, vol_mL, state = parse_status_line(status_resp)
-            if t_s is not None:
-                trial_data.append((t_s, vol_mL, state))
+    Returns:
+        (timestamp, volume_mL, pump_state, new_last_status_time)
+        OR
+        (None, None, None, last_status_time)
+    """
 
-        last_status_time = time.time()
+    now = time.time()
 
-    return last_status_time
+    # Too early to poll again
+    if now - last_status_time < interval:
+        return None, None, None, last_status_time
+
+    # Poll pump
+    send_cmd(Harvard_Serial, "status")
+    time.sleep(0.1)
+
+    status_resp = Harvard_Serial.readline().decode("ascii", errors="ignore").strip()
+
+    new_last_time = now  # update regardless of success
+
+    if not status_resp:
+        return None, None, None, new_last_time
+
+    print("Status:", status_resp)
+
+    t_s, vol_mL, state = parse_status_line(status_resp)
+
+    if t_s is None:
+        return None, None, None, new_last_time
+
+    return t_s, vol_mL, state, new_last_time
+
+
+
     
 def parse_status_line(status_line):
     parts = status_line.split()
