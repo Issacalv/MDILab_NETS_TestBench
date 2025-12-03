@@ -10,6 +10,7 @@ import csv
 from experiment_parameters import *
 from harvard_aparatus import *
 from pressure_sensor import latest_pressure, pressure_thread
+from data_analysis import combine_experiment_trials
 
 
 
@@ -134,9 +135,10 @@ def save_trial_data(trial_folder, trial_number, trial_data):
             writer.writerows(trial_data)
         print(f"Saved data log: {data_path_csv}")
 
-
     except Exception as e:
         print(f"Error saving data for Trial {trial_number}: {e}")
+
+        
 
 
 def run_experiment(N_TRIALS):
@@ -262,6 +264,7 @@ def run_experiment(N_TRIALS):
     pressure_stop_event.set()
 
     Harvard_Serial.close()
+    return experiment_path
     print("\n=== All trials complete ===")
 
 
@@ -273,10 +276,12 @@ def main():
     starting the experiment run sequence.
     """
 
+    
     check_syringe_limits()
     calculate_flow_rates()
-    run_experiment(N_TRIALS)
-
+    experiment_path = run_experiment(N_TRIALS)
+    combine_experiment_trials(experiment_path)
+    
 
 if __name__ == "__main__":
     main()
