@@ -11,6 +11,7 @@ from experiment_parameters import *
 from harvard_aparatus import *
 from pressure_sensor import latest_pressure, pressure_thread
 from data_analysis import combine_experiment_trials
+import sys
 
 
 
@@ -138,8 +139,6 @@ def save_trial_data(trial_folder, trial_number, trial_data):
     except Exception as e:
         print(f"Error saving data for Trial {trial_number}: {e}")
 
-        
-
 
 def run_experiment(N_TRIALS):
     """
@@ -240,8 +239,10 @@ def run_experiment(N_TRIALS):
             )
 
             if t_s is not None:
-                pressure_psi = latest_pressure["psi"]
-                pressure_mmhg = latest_pressure["mmhg"]
+                pressure_psi = round(latest_pressure["psi"], 2)
+                pressure_mmhg = round(latest_pressure["mmhg"], 2)
+                t_s = round(t_s, 2)
+                vol_mL = round(vol_mL, 2)
 
                 trial_data.append((
                     t_s,
@@ -250,6 +251,7 @@ def run_experiment(N_TRIALS):
                     pressure_psi,
                     pressure_mmhg
                 ))
+
 
             time.sleep(0.1)
 
@@ -268,6 +270,32 @@ def run_experiment(N_TRIALS):
     print("\n=== All trials complete ===")
 
 
+def ensure_mcp2221_env():
+    """
+    Ensures BLINKA_MCP2221=1 is set.
+    If it cannot set it, prints the exact PowerShell command
+    the user must run manually in the VS Code terminal.
+    """
+
+    REQUIRED = "1"
+
+    if os.environ.get("BLINKA_MCP2221") == REQUIRED:
+        return
+
+    print("BLINKA_MCP2221 was not set. Attempting to set it automatically...")
+    os.environ["BLINKA_MCP2221"] = REQUIRED
+
+    if os.environ.get("BLINKA_MCP2221") != REQUIRED:
+        print("\nCould NOT set BLINKA_MCP2221 automatically.")
+        print("You MUST run the program using this VS Code terminal command:\n")
+        print('   $env:BLINKA_MCP2221 = "1"')
+        print('   Then you can rerun the script\n')
+        sys.exit(1)
+
+    print("BLINKA_MCP2221  set successfully.\n")
+
+
+
 def main():
     """
     Main entry point of the program.
@@ -275,8 +303,7 @@ def main():
     Validates syringe parameters and flow rate safety before 
     starting the experiment run sequence.
     """
-
-    
+    ensure_mcp2221_env()
     check_syringe_limits()
     calculate_flow_rates()
     experiment_path = run_experiment(N_TRIALS)
