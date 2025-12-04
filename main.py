@@ -12,8 +12,7 @@ from harvard_aparatus import *
 from pressure_sensor import latest_pressure, pressure_thread
 from data_analysis import combine_experiment_trials
 import sys
-
-
+from tracking import anotation
 
 
 def create_data_folders(experiment_name, materials, num_trials):
@@ -187,9 +186,9 @@ def run_experiment(N_TRIALS):
         withdrawing = False
         last_status_time = 0  # timestamp when pump was last polled
 
-        # -------------------------------
-        #        INFUSION LOOP
-        # -------------------------------
+        '''
+        INFUSION LOOP
+        '''
         while True:
             response = Harvard_Serial.readline().decode("ascii", errors="ignore").strip()
             if response:
@@ -222,9 +221,9 @@ def run_experiment(N_TRIALS):
 
             time.sleep(0.1)
 
-        # -------------------------------
-        #       WITHDRAWAL LOOP
-        # -------------------------------
+        '''
+        WITHDRAWAL LOOP
+        '''
         while withdrawing:
             response = Harvard_Serial.readline().decode("ascii", errors="ignore").strip()
             if response:
@@ -266,8 +265,9 @@ def run_experiment(N_TRIALS):
     pressure_stop_event.set()
 
     Harvard_Serial.close()
+    print("\nAll trials complete")
     return experiment_path
-    print("\n=== All trials complete ===")
+
 
 
 def ensure_mcp2221_env():
@@ -294,8 +294,6 @@ def ensure_mcp2221_env():
 
     print("BLINKA_MCP2221  set successfully.\n")
 
-
-
 def main():
     """
     Main entry point of the program.
@@ -303,12 +301,36 @@ def main():
     Validates syringe parameters and flow rate safety before 
     starting the experiment run sequence.
     """
+
+    # --------------------------------------------------------
+    # Read calibration argument from CLI
+    # Usage:
+    #   python main.py calibrate=True
+    #   python main.py calibrate=False
+    # --------------------------------------------------------
+    if len(sys.argv) > 1:
+        arg = sys.argv[1].lower()
+        if arg == "calibrate=true":
+            CALIBRATE = True
+        elif arg == "calibrate=false":
+            CALIBRATE = False
+        else:
+            print("Unknown argument. Use:")
+            print("  python main.py calibrate=True")
+            print("  python main.py calibrate=False")
+            return
+
+    print(f"\n[INFO] Calibration Mode = {CALIBRATE}\n")
+
     ensure_mcp2221_env()
     check_syringe_limits()
     calculate_flow_rates()
+
     experiment_path = run_experiment(N_TRIALS)
+    #experiment_path = r""
+    anotation(experiment_path, CALIBRATION_MODE=CALIBRATE)
     combine_experiment_trials(experiment_path)
-    
+
 
 if __name__ == "__main__":
     main()

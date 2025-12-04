@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+from experiment_parameters import INFUSION_PAUSE
 
 def fix_withdraw_volumes(df):
     inflate = df[df["Pump State"] == "I"]
@@ -11,32 +12,40 @@ def fix_withdraw_volumes(df):
 
     corrected = df.copy()
 
-    #Fix Volume
+    # Fix Volume
     Vmax = inflate["Pump Volume (mL)"].iloc[-1]
     corrected.loc[withdraw.index, "Pump Volume (mL)"] = (
         Vmax - withdraw["Pump Volume (mL)"]
     )
 
-    #Fix time
     Tmax = inflate["Timestamp (s)"].iloc[-1]
     T0_W = withdraw["Timestamp (s)"].iloc[0]
 
     corrected.loc[withdraw.index, "Timestamp (s)"] = (
-        Tmax + (withdraw["Timestamp (s)"] - T0_W)
+        Tmax + INFUSION_PAUSE + (withdraw["Timestamp (s)"] - T0_W)
     )
 
-    #Round all numeric columns to 2 decimals
     num_cols = corrected.select_dtypes(include="number").columns
     corrected[num_cols] = corrected[num_cols].round(2)
 
     return corrected
 
+
+
+# ============================================================
+#                       PLOTTING
+# ============================================================
+
 def plot_pump_data(df, output_folder, prefix=""):
-    """Generate 4 plots and save them to output_folder."""
     os.makedirs(output_folder, exist_ok=True)
 
+    df = df.rename(columns={
+        "time": "Timestamp (s)",
+        "angle": "Angle (deg)"
+    })
+
     # Volume vs Time
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(df["Timestamp (s)"], df["Pump Volume (mL)"], linewidth=2)
     plt.xlabel("Time (s)")
     plt.ylabel("Volume (mL)")
@@ -47,7 +56,7 @@ def plot_pump_data(df, output_folder, prefix=""):
     plt.close()
 
     # Pressure vs Time
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(df["Timestamp (s)"], df["Pressure (mmHg)"], linewidth=2)
     plt.xlabel("Time (s)")
     plt.ylabel("Pressure (mmHg)")
@@ -57,11 +66,11 @@ def plot_pump_data(df, output_folder, prefix=""):
     plt.savefig(os.path.join(output_folder, f"{prefix}_pressure_vs_time.png"))
     plt.close()
 
-    # Volume vs Time by Pump State
+    # Volume vs Time by State
     df_I = df[df["Pump State"] == "I"]
     df_W = df[df["Pump State"] == "W"]
 
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(10, 5))
     plt.plot(df_I["Timestamp (s)"], df_I["Pump Volume (mL)"], label="Inflate", linewidth=2)
     plt.plot(df_W["Timestamp (s)"], df_W["Pump Volume (mL)"], label="Withdraw", linewidth=2)
     plt.xlabel("Time (s)")
@@ -74,7 +83,7 @@ def plot_pump_data(df, output_folder, prefix=""):
     plt.close()
 
     # Pressure vs Volume
-    plt.figure(figsize=(6,6))
+    plt.figure(figsize=(6, 6))
     plt.scatter(df["Pump Volume (mL)"], df["Pressure (mmHg)"], s=35)
     plt.xlabel("Volume (mL)")
     plt.ylabel("Pressure (mmHg)")
@@ -84,85 +93,148 @@ def plot_pump_data(df, output_folder, prefix=""):
     plt.savefig(os.path.join(output_folder, f"{prefix}_pressure_vs_volume.png"))
     plt.close()
 
-def combine_experiment_trials(path_to_experiment_folder):
-    """
-    For each trial folder:
-        - Finds the trial CSV automatically
-        - Fixes time + volume
-        - Saves Data_FIXED.csv
-        - Saves 4 graphs
+    if "Angle (deg)" in df.columns:
 
-    Creates:
-        Combined_Data_RAW.csv
-        Combined_Data_FIXED.csv
+        # Angle vs Time
+        plt.figure(figsize=(10, 5))
+        plt.plot(df["Timestamp (s)"], df["Angle (deg)"], linewidth=2)
+        plt.xlabel("Time (s)")
+        plt.ylabel("Angle (deg)")
+        plt.title("Angle vs Time")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, f"{prefix}_angle_vs_time.png"))
+        plt.close()
+
+        # Angle vs Volume
+        plt.figure(figsize=(6, 6))
+        plt.scatter(df["Pump Volume (mL)"], df["Angle (deg)"], s=35)
+        plt.xlabel("Volume (mL)")
+        plt.ylabel("Angle (deg)")
+        plt.title("Angle vs Volume")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, f"{prefix}_angle_vs_volume.png"))
+        plt.close()
+
+        # Angle vs Pressure
+        plt.figure(figsize=(6, 6))
+        plt.scatter(df["Pressure (mmHg)"], df["Angle (deg)"], s=35)
+        plt.xlabel("Pressure (mmHg)")
+        plt.ylabel("Angle (deg)")
+        plt.title("Angle vs Pressure")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, f"{prefix}_angle_vs_pressure.png"))
+        plt.close()
+
+        # Angle vs Time by Pump State
+        plt.figure(figsize=(10, 5))
+        plt.plot(df_I["Timestamp (s)"], df_I["Angle (deg)"], label="Inflate", linewidth=2)
+        plt.plot(df_W["Timestamp (s)"], df_W["Angle (deg)"], label="Withdraw", linewidth=2)
+        plt.xlabel("Time (s)")
+        plt.ylabel("Angle (deg)")
+        plt.title("Angle vs Time by Pump State")
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_folder, f"{prefix}_angle_by_state.png"))
+        plt.close()
+
+def merge_pump_and_angle(trial_path, pump_csv_path, tolerance=0.05):
     """
+    Merges pump data (Data_N_fixed.csv) with video angle data by nearest timestamp.
+    """
+
+    # Find angle CSV
+    angle_csv = None
+    for fname in os.listdir(trial_path):
+        if fname.lower().endswith("_angles.csv"):
+            angle_csv = os.path.join(trial_path, fname)
+            break
+
+    if angle_csv is None:
+        print(f"[WARNING] No video angle CSV found in {trial_path}")
+        return None
+
+    df_pump = pd.read_csv(pump_csv_path)
+    df_angle = pd.read_csv(angle_csv)
+
+    df_pump = df_pump.rename(columns={"Timestamp (s)": "time"})
+
+    video_start = df_angle["time"].iloc[0]
+    pump_start = df_pump["time"].iloc[0]
+
+    df_angle["time"] = df_angle["time"] - video_start + pump_start
+
+    df_pump = df_pump.sort_values("time")
+    df_angle = df_angle.sort_values("time")
+
+    merged = pd.merge_asof(
+        df_pump,
+        df_angle,
+        on="time",
+        direction="nearest",
+        tolerance=tolerance
+    )
+
+    out_path = os.path.join(
+        trial_path,
+        os.path.splitext(os.path.basename(pump_csv_path))[0] + "_with_angle.csv"
+    )
+    merged.to_csv(out_path, index=False)
+
+    print(f"[SAVED] Pump + angle merged CSV:\n{out_path}")
+    return out_path
+
+def combine_experiment_trials(path_to_experiment_folder):
 
     trial_folders = sorted([
         f for f in os.listdir(path_to_experiment_folder)
-        if f.lower().startswith("trial") and
-           os.path.isdir(os.path.join(path_to_experiment_folder, f))
+        if f.lower().startswith("trial") and os.path.isdir(os.path.join(path_to_experiment_folder, f))
     ])
 
     if not trial_folders:
         print("No trial folders found!")
         return
 
-    combined_raw_frames = []
-    combined_fixed_frames = []
-
-    # Loop through trial folders
     for trial_name in trial_folders:
         trial_path = os.path.join(path_to_experiment_folder, trial_name)
 
-        # Dynamically find the CSV file (first CSV inside the trial folder)
-        csv_files = [f for f in os.listdir(trial_path) if f.lower().endswith(".csv")]
-        if not csv_files:
-            print(f"No CSV found inside {trial_name}, skipping.")
+        pump_csv_files = [
+            f for f in os.listdir(trial_path)
+            if f.lower().startswith("data_")
+            and f.lower().endswith(".csv")
+            and "_angles" not in f
+            and "_fixed" not in f
+            and "_with_angle" not in f
+        ]
+
+        if not pump_csv_files:
+            print(f"No pump CSV found in {trial_name}, skipping.")
             continue
 
-        csv_path = os.path.join(trial_path, csv_files[0])
-        print(f"Processing {csv_path}")
+        pump_csv_path = os.path.join(trial_path, pump_csv_files[0])
+        print(f"\nProcessing: {pump_csv_path}")
 
-        # Load raw CSV
-        df_raw = pd.read_csv(csv_path)
-        df_raw["Trial"] = trial_name
-        combined_raw_frames.append(df_raw)
+        df_raw = pd.read_csv(pump_csv_path)
 
-        # Fix values
         df_fixed = fix_withdraw_volumes(df_raw)
-        df_fixed["Trial"] = trial_name
 
         # Save fixed CSV
-        # Dynamically create fixed CSV name
-        base_name, ext = os.path.splitext(csv_files[0])
-        fixed_csv_filename = f"{base_name}_fixed{ext}"
-        fixed_csv_path = os.path.join(trial_path, fixed_csv_filename)
-
-        # Save fixed CSV
+        base_name, ext = os.path.splitext(pump_csv_files[0])
+        fixed_csv_path = os.path.join(trial_path, f"{base_name}_fixed{ext}")
         df_fixed.to_csv(fixed_csv_path, index=False)
         print(f"Saved fixed CSV: {fixed_csv_path}")
 
-        # Save graphs for this trial
+        # MERGE WITH ANGLE DATA FIRST
+        merged_path = merge_pump_and_angle(trial_path, fixed_csv_path)
+        if merged_path is not None:
+            df_plot = pd.read_csv(merged_path)
+        else:
+            df_plot = df_fixed
+
         graphs_folder = os.path.join(trial_path, "Graphs")
-        plot_pump_data(df_fixed, graphs_folder, prefix=trial_name)
-        print(f"Graphs saved for {trial_name}")
+        plot_pump_data(df_plot, graphs_folder, prefix=trial_name)
 
-        combined_fixed_frames.append(df_fixed)
-
-    # Combine all trials
-    combined_raw = pd.concat(combined_raw_frames, ignore_index=True)
-    combined_fixed = pd.concat(combined_fixed_frames, ignore_index=True)
-
-    # Save combined datasets
-    raw_out = os.path.join(path_to_experiment_folder, "Combined_Data_RAW.csv")
-    fixed_out = os.path.join(path_to_experiment_folder, "Combined_Data_FIXED.csv")
-
-    combined_raw.to_csv(raw_out, index=False)
-    combined_fixed.to_csv(fixed_out, index=False)
-
-    print("\nSaved combined CSV files:")
-    print(f" - RAW Data:   {raw_out}")
-    print(f" - FIXED Data: {fixed_out}")
-
-
-
+    print("\nAll trial processing complete.")
