@@ -1,0 +1,5 @@
+{
+    "terminal.integrated.env.windows": {
+        "BLINKA_MCP2221": "1"
+    }
+}

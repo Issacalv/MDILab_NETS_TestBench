@@ -19,36 +19,64 @@ Automated control and data logging system for the **Harvard PHD Ultra syringe pu
 ## 🧰 Requirements
 
 ### Software
-- **Python 3.9+**
-- **VS Code** (recommended)
+- Tested on **Python 3.13.10**  
+  👉 [Download Python 3.13.10 (Windows 64-bit)](https://www.python.org/downloads/release/python-31310/)
+
+- Recommended IDE: **VS Code**  
+  👉 [Download Visual Studio Code](https://code.visualstudio.com)
+
+- Version control: **Git**  
+  👉 [Download Git for Windows](https://git-scm.com/install/windows)
+
 - Works on **Windows 10/11**
+
 
 ### Hardware
 - Harvard **PHD Ultra** syringe pump  
-- USB-to-serial connection cable  
+- Pressure Transducer  
 - USB webcam  
 
 ---
 
 ## 🧱 Installation & Setup (in VS Code)
 
+### Option A (Manual install)
+
 1. Open a terminal (**Ctrl + `**) inside VS Code  
 
-2. **Clone or Download the Repository**
+2. Search for desired directory to download repo (Example):
+
+   ```bash
+   cd Desktop/
+   ```
+
+3. **Clone or Download the Repository**
    ```bash
    git clone https://github.com/Issacalv/MDI_NETS_TestBench.git
    cd MDI_NETS_TestBench/
    ```
 
-3. **Create a Python Virtual Environment**
+4. **Create a Python Virtual Environment**:
+
+   - In this case, were downloading with python version 3.13 hence '-3.13'
    ```bash
-   python -m venv venv
+   py -3.13 -m venv venv
    ```
-   Activate it:
+   Activate the virtual environment:
    - **VS Code Terminal**
      ```bash
      venv\Scripts\activate
      ```
+
+   **If activated properly, the terminal should go from**:
+   ```bash
+   C:\User\Name\Desktop\MDILab_NETS_TestBench
+   ```
+
+   **to**
+   ```bash
+   (venv) C:\User\Name\Desktop\MDILab_NETS_TestBench
+   ```
 
 4. **Install Dependencies**
    ```bash
@@ -60,6 +88,38 @@ Automated control and data logging system for the **Harvard PHD Ultra syringe pu
    - Connect your USB webcam.  
    - Confirm both devices appear in Device Manager.
 
+### Option B (Auto Install)
+
+1. Open a terminal (**Ctrl + `**) inside VS Code  
+
+2. Search for desired directory to download repo (Example):
+
+   ```bash
+   cd Desktop/
+   ```
+
+3. **Clone or Download the Repository**
+   ```bash
+   git clone https://github.com/Issacalv/MDI_NETS_TestBench.git
+   cd MDI_NETS_TestBench/
+   ```
+
+4. **In the Terminal Run**
+   ```bash
+   Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
+5. **Then run the auto installer file**
+
+   ```bash
+   .\AutoInstaller.ps1
+   ```
+
+6. **Connect Your Hardware**
+   - Plug in the syringe pump and note its COM port (e.g., `COM3`).
+   - Connect your USB webcam.  
+   - Confirm both devices appear in Device Manager.
+
 ---
 
 ## ▶️ How to Run
@@ -67,7 +127,15 @@ Automated control and data logging system for the **Harvard PHD Ultra syringe pu
 1. **Open the Folder in VS Code**  
    - Click **File → Open Folder...**  
    - Choose your project folder  
-   - Open a terminal (**Ctrl + `**) inside VS Code  
+   - Open a terminal (**Ctrl + `**) inside VS Code 
+   - Ensure you're in your project folder:
+      ```bash
+      cd <Project Folder Path>
+      ``` 
+   - Activate environment
+      ```bash
+      .\venv\Scripts\activate
+      ```
 
 2. **Run the Main Script**
    ```bash
@@ -114,35 +182,66 @@ All parameters are validated automatically before the test starts.
 ## 📁 Project Structure
 ```
 📦 MDI_NETS_TestBench
-├── main.py                   # Central experiment control script
-├── calibrate.py              # Camera calibration and undistortion tools
-├── record_video.py           # Threaded video recording functions
-├── harvard_apparatus.py      # Pump command logic and serial protocol
-├── serial_connection.py      # COM port scanning and initialization
-├── experiment_parameters.py  # User-defined experiment and safety settings
-├── variables.py              # Hardware IDs and COM port constants
-├── requirements.txt          # Python dependencies
-└── Data/                     # Auto-generated folder for results and videos
-│    └── 10-10/               # Example date (MM-DD)
-│        └── AirTest_EcoFlex20_14-30-52/    # Timestamped experiment folder
-│            ├── Data_Parameters.txt        # Summary txt parameters file
-│            ├── Trial_1/
-│            │   ├── Data_1.csv
-│            │   └── Video_Trial_1.mp4
-│            ├── Trial_2/
-│            │   ├── Data_2.csv
-│            │   └── Video_Trial_2.mp4
-│            └── Trial_3/
-│                ├── Data_3.csv
-│                └── Video_Trial_3.mp4
-├── calibration_images/               # Auto-generated folder
-│   ├── calibration_00.jpg           # Captured chessboard images
-│   ├── corners_calibration_00.jpg   # Corner-detected images
-│   ├── calibration_data.pkl         # Saved calibration data
-│   ├── camera_matrix.txt            # Intrinsic parameters
-│   ├── distortion_coefficients.txt  # Lens distortion coefficients
-│   ├── undistorted/                 # (optional) corrected images
-│   └── before_after_comparison.png  # Before vs. after plot
+├── main.py                     # Central experiment control script
+├── calibrate.py                # Camera calibration and undistortion tools
+├── record_video.py             # Threaded video recording functions
+├── harvard_apparatus.py        # Pump command logic and serial protocol
+├── serial_connection.py        # COM port scanning and initialization
+├── experiment_parameters.py    # User-defined experiment and safety settings
+├── variables.py                # Hardware IDs and COM port constants
+├── pressure_sensor.py          # Pressure transducer logic and communication protocol
+├── tracking.py                 # Logic for tracking point of interest
+├── calibration_points.txt      # Auto-generated reference point log
+├── data_analysis.py            # Post-process CSV data and annotate video
+├── requirements.txt            # Python dependencies
+📦 MDI_NETS_TestBench
+│
+├── Data/
+│   └── 10-10/
+│       └── AirTest_EcoFlex20_14-30-52/
+│           ├── Data_Parameters.txt
+│           ├── Trial_1/
+│           │   ├── Data_1.csv                    # Raw pump data
+│           │   ├── Video_Trial_1.mp4
+│           │   ├── Video_Trial_1_Annotated.mp4
+│           │   ├── Data_1_fixed.csv             #Generated by fix_withdraw_volumes()
+│           │   ├── Data_1_fixed_with_angle.csv  #Generated by merge_pump_and_angle()
+│           │   └── Graphs/                      #Created by plot_pump_data()
+│           │       ├── Trial_1_volume_vs_time.png
+│           │       ├── Trial_1_pressure_vs_time.png
+│           │       ├── Trial_1_volume_by_state.png
+│           │       ├── Trial_1_pressure_vs_volume.png
+│           │       ├── Trial_1_angle_vs_time.png           # (only if angle CSV exists)
+│           │       ├── Trial_1_angle_vs_volume.png         # (only if angle CSV exists)
+│           │       ├── Trial_1_angle_vs_pressure.png       # (only if angle CSV exists)
+│           │       ├── Trial_1_angle_by_state.png          # (only if angle CSV exists)
+│           ├── Trial_2/
+│           │   ├── Data_2.csv                    # Raw pump data
+│           │   ├── Video_Trial_2.mp4
+│           │   ├── Video_Trial_2_Annotated.mp4
+│           │   ├── Data_2_fixed.csv             #Generated by fix_withdraw_volumes()
+│           │   ├── Data_2_fixed_with_angle.csv  #Generated by merge_pump_and_angle()
+│           │   └── Graphs/                      #Created by plot_pump_data()
+│           │       ├── Trial_2_volume_vs_time.png
+│           │       ├── Trial_2_pressure_vs_time.png
+│           │       ├── Trial_2_volume_by_state.png
+│           │       ├── Trial_2_pressure_vs_volume.png
+│           │       ├── Trial_2_angle_vs_time.png           # (only if angle CSV exists)
+│           │       ├── Trial_2_angle_vs_volume.png         # (only if angle CSV exists)
+│           │       ├── Trial_2_angle_vs_pressure.png       # (only if angle CSV exists)
+│           │       ├── Trial_2_angle_by_state.png          # (only if angle CSV exists)
+│           ├── TrialSummary/
+│           │   ├── MergedData.csv                    # Merged Data for N trials
+│           │   ├── Angle_Stats.txt                  # Overview of angles
+└── calibration_images/                # Auto-generated folder
+    ├── calibration_00.jpg             # Captured chessboard images
+    ├── corners_calibration_00.jpg     # Corner-detected images
+    ├── calibration_data.pkl           # Saved calibration data
+    ├── camera_matrix.txt              # Intrinsic parameters
+    ├── distortion_coefficients.txt    # Lens distortion coefficients
+    ├── undistorted/                   # (optional) corrected images
+    └── before_after_comparison.png    # Before vs. after comparison plot
+
 ```
 
 ---
@@ -184,7 +283,7 @@ If something is misconfigured, a **`ValueError`** message will appear — use th
 | `COM not set` or `BAUD_RATE not set` | Missing parameters in setup. | Make sure `initialize_devices()` and `harvard_control()` are called in `main.py`. |
 
 
-# 🧩 Function Call Hierarchy (Simplified)
+# 🧩 Function Call Hierarchy (Simplified) [Out of Date]
 
 This diagram outlines how functions call each other across the **MDI_NETS_TestBench** project.  
 Library calls (e.g., OpenCV, Matplotlib, Serial) are labeled as **(library)**.

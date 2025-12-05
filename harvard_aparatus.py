@@ -149,7 +149,7 @@ def send_cmd(ser, command: str):
     ser.write((command + '\r\n').encode('ascii'))
     print(f"Sent command: {command}")
 
-    time.sleep(0.1) 
+    time.sleep(0.02) 
 
     while True:
         response = ser.readline().decode('ascii', errors='ignore').strip()

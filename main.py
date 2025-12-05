@@ -302,24 +302,7 @@ def main():
     starting the experiment run sequence.
     """
 
-    # --------------------------------------------------------
-    # Read calibration argument from CLI
-    # Usage:
-    #   python main.py calibrate=True
-    #   python main.py calibrate=False
-    # --------------------------------------------------------
-    if len(sys.argv) > 1:
-        arg = sys.argv[1].lower()
-        if arg == "calibrate=true":
-            CALIBRATE = True
-        elif arg == "calibrate=false":
-            CALIBRATE = False
-        else:
-            print("Unknown argument. Use:")
-            print("  python main.py calibrate=True")
-            print("  python main.py calibrate=False")
-            return
-
+    CALIBRATE = True
     print(f"\n[INFO] Calibration Mode = {CALIBRATE}\n")
 
     ensure_mcp2221_env()
