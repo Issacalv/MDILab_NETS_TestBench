@@ -170,6 +170,11 @@ def run_experiment(N_TRIALS):
         send_cmd(Harvard_Serial, HARVARD_QUICK_START_IW)
         set_target_infused(Harvard_Serial)
 
+        '''
+        Testing setting withdraw target only
+        '''
+        set_target_withdraw_test(Harvard_Serial)
+
         trial_data = []
         trial_folder = os.path.join(experiment_path, f"Trial_{trial + 1}")
 
@@ -216,7 +221,12 @@ def run_experiment(N_TRIALS):
                 ))
 
             if infusion_complete:
-                withdrawing = set_target_withdraw(Harvard_Serial)
+                #withdrawing = set_target_withdraw(Harvard_Serial) //Old Code
+                '''
+                Testing wtih run withdraw tt only
+                '''
+
+                withdrawing = run_withdraw_test(Harvard_Serial)
                 break
 
             time.sleep(0.1)

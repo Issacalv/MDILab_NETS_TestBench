@@ -182,9 +182,19 @@ def set_target_withdraw(Harvard_Serial):
     send_cmd(Harvard_Serial, HARVARD_SET_TARGET_VOLUME_WITHDRAW)
     print("Starting withdrawal...")
     send_cmd(Harvard_Serial, HARVARD_WITHDRAW_RUN)
+    return True
+
+def set_target_withdraw_test(Harvard_Serial):
+
+    send_cmd(Harvard_Serial, HARVARD_CLEAR_TARGET_TIME)
+    send_cmd(Harvard_Serial, HARVARD_CLEAR_TARGET_VOLUME)
+    send_cmd(Harvard_Serial, HARVARD_SET_TARGET_VOLUME_WITHDRAW)
+
+def run_withdraw_test(Harvard_Serial):
+    print("Starting withdrawal...")
+    send_cmd(Harvard_Serial, HARVARD_WITHDRAW_RUN)
+    return True
     
-    withdrawing = True 
-    return withdrawing
 
 def poll_pump_status(Harvard_Serial, last_status_time, interval=1.0):
     """
