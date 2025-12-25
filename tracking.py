@@ -270,6 +270,14 @@ def anotation(TRIAL_FOLDER, CALIBRATION_MODE=True):
             print(f"[SAVED] Angle CSV written to:\n{csv_path}")
 
             # Move to next video
+            if data:
+                max_angle = max(abs(a) for _, a in data)
+
+                max_angle_path = os.path.join(trial_folder, "max_angle.txt")
+                with open(max_angle_path, "w") as f:
+                    f.write(f"{max_angle:.4f}\n")
+
+                print(f"[SAVED] Max angle: {max_angle:.2f} deg")
             continue
 
         else:
@@ -283,4 +291,13 @@ def anotation(TRIAL_FOLDER, CALIBRATION_MODE=True):
                     f.write(f"{t:.4f},{a:.4f}\n")
 
             print(f"[SAVED] Angle CSV written to:\n{csv_path}")
+            
+            if data:
+                max_angle = max(abs(a) for _, a in data)
+
+                max_angle_path = os.path.join(trial_folder, "max_angle.txt")
+                with open(max_angle_path, "w") as f:
+                    f.write(f"{max_angle:.4f}\n")
+
+                print(f"[SAVED] Max angle: {max_angle:.2f} deg")
 
