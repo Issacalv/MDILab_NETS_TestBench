@@ -1,3 +1,16 @@
+'''
+When the script is run, the terminal will display a message in the following format:
+"Opened camera index N"
+
+Check the terminal output to determine which camera index corresponds to the correct camera.
+You can toggle between cameras with 'n' and 'p'
+Exit with 'q'
+
+Once the correct camera has been identified, update the CAMERA_ID variable in the file 
+experiment_parameters.py to the value of N shown in the terminal.
+
+'''
+
 import cv2
 
 def open_cam(index):

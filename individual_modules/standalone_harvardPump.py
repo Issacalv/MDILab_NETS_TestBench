@@ -2,6 +2,15 @@ import serial
 import time
 import sys
 
+'''
+
+GPT Generated
+
+Change variable HARVARD_COM_PORT = "COM4"
+to actual COMport if needed
+
+'''
+
 # ================================================================
 #  SERIAL SETUP — REQUIRED FOR HARVARD PHD ULTRA
 # ================================================================
@@ -150,7 +159,8 @@ Controls:
 #  MAIN ENTRY POINT
 # ================================================================
 if __name__ == "__main__":
-    ser = open_harvard_port("COM4")
+    HARVARD_COM_PORT = "COM4"
+    ser = open_harvard_port(HARVARD_COM_PORT)
 
     print("Clearing buffers…")
     try:
